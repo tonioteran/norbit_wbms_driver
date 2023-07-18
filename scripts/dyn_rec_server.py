@@ -7,7 +7,7 @@ import socket
 import rospy
 from std_msgs.msg import Float32
 from dynamic_reconfigure.server import Server
-from dyn_rec.cfg import fls_paramsConfig 
+from Norbit_FLS_driver.cfg import fls_paramsConfig 
 
 
 
@@ -61,20 +61,24 @@ class CommandInterface:
                 continue
             if key == "set_gate_mode":
                 msg = key + str(config[key])
-                self.tcp_sock.send(msg.encode())
+                #self.tcp_sock.send(msg.encode())
+                print(msg)
                 if gate_nr == 2:
                     msg = "set_range" + " " + str(config["set_range_R0"]) + " " + str(config["set_range_R1"]) + " " +  str(config["set_depth_D0"]) + " " + str(config["set_depth_D1"])
                 else:
                     msg = "set_range" + " " + str(config["set_range_min"]) + " " + str(config["set_range_max"])
-                self.tcp_sock.send(msg.encode())
+                #self.tcp_sock.send(msg.encode())
+                print(msg)
             elif key == "set_vertical_resolution":
                 msg = "set_resolution" + " " + str(config[key]) + " " + str(config["set_horizontal_resolution"])
             elif key == "set_tx_Frequency":
                 msg = "set_tx" + " " + str(config[key]) + " " + str(config["set_tx_Bandwidth"]) + " " + str(config["set_tx_amp"]) + " " + str(config["set_tx_pulse_length"])
-                self.tcp_sock.send(msg.encode())
+                #self.tcp_sock.send(msg.encode())
+                print(msg)
             else:
                 msg = key + " " + str(config[key])
-                self.tcp_sock.send(msg.encode())
+                #self.tcp_sock.send(msg.encode())
+                print(msg)
         return config
 
 
