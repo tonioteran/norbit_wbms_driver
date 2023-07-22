@@ -8,7 +8,8 @@ import rospy
 from std_msgs.msg import Float32
 from dynamic_reconfigure.server import Server
 from Norbit_FLS_driver.cfg import fls_paramsConfig 
-
+from Norbit_FLS_driver.msg import Configs
+from rospy_message_converter import message_converter
 
 
 class CommandInterface:
@@ -40,9 +41,10 @@ class CommandInterface:
         # Set a timout for the socket.
         self.tcp_sock.settimeout(2)
         self.initializing = True
-        self.original_config = fls_paramsConfig.defaults
-        rospy.loginfo(self.original_config)
+        self.cycling = False
+        self.original_config = fls_paramsConfig.defaults.copy()
         self.config_server = Server(fls_paramsConfig, self.dynamic_callback)
+        self.config_sub = rospy.Subscriber('configs', Configs, self.cycle_callback)
         
        
       
@@ -52,79 +54,99 @@ class CommandInterface:
         """
         Callback function for the dynamic reconfigure server.
         """
-        if not self.initializing:
-            msg=""
-            changed_gate_mode = False
-            for key in config:
-                if key in self.original_config:
-                    if config[key] != self.original_config[key]:
-                        if key == "set_gate_mode":
-                            changed_gate_mode = True
-                            if config[key] == 2:
-                                msg = "set_range" + " " + str(config["set_range_R0"]) + " " + str(config["set_range_R1"]) + " " +  str(config["set_depth_D0"]) + " " + str(config["set_depth_D1"])
-                            else:
-                                msg = "set_range" + " " + str(config["set_range_min"]) + " " + str(config["set_range_max"])
-                        elif (key == "set_range_min" or key == "set_range_max"):
-                            if config["set_gate_mode"]!=2:
-                                msg = "set_range" + " " + str(config["set_range_min"]) + " " + str(config["set_range_max"])
-                        elif (key == "set_range_R0" or key == "set_range_R1" or key == "set_depth_D0" or key == "set_depth_D1"):
-                            if config["set_gate_mode"]==2:
-                                msg = "set_range" + " " + str(config["set_range_R0"]) + " " + str(config["set_range_R1"]) + " " +  str(config["set_depth_D0"]) + " " + str(config["set_depth_D1"])
-                        elif key == "set_vertical_resolution" or key == "set_horizontal_resolution":
-                            msg = "set_resolution" + " " + str(config["set_vertical_resolution"]) + " " + str(config["set_horizontal_resolution"])
-                        elif key == "set_tx_Frequency" or key == "set_tx_Bandwidth" or key == "set_tx_amp" or key == "set_tx_pulse_length":
-                            msg = "set_tx" + " " + str(config["set_tx_Frequency"]) + " " + str(config["set_tx_Bandwidth"]) + " " + str(config["set_tx_amp"]) + " " + str(config["set_tx_pulse_length"])
-                        else:
-                            msg = key + " " + str(config[key])
-                        # rospy.loginfo(key)
-                        self.original_config = config
-                        break
-            if changed_gate_mode:
-                msg_gate = "set_gate_mode" + " " + str(config["set_gate_mode"])
-                self.tcp_sock.send(msg_gate.encode())
-                reply_gate = self.tcp_sock.recv(1024)
-                #rospy.loginfo(msg_gate)
-                #rospy.loginfo(reply_gate)
-            #rospy.loginfo(msg)
-            self.tcp_sock.send(msg.encode())
-            reply = self.tcp_sock.recv(1024)
-            #rospy.loginfo(reply)
+        if not self.initializing and not self.cycling:
+            self.find_change_and_send(self.original_config, config, True)
+        self.cycling = False
+        self.original_config = config.copy()
         return config
+    
+    def send_whole_config(self,conf): 
+        passinglist =["set_range_min", "set_range_max", "set_range_R0","set_range_R1", "set_depth_D0", "set_depth_D1", "set_horizontal_resolution", "set_tx_Bandwidth", "set_tx_amp", "set_tx_pulse_length"] 
+        for key in conf:
+            if key in passinglist:
+                continue
+            if key == "set_gate_mode":
+                msg = key + " " + str(conf[key])
+                self.send_msg(msg)
+                if conf[key] == 2:
+                    msg = "set_range" + " " + str(conf["set_range_R0"]) + " " + str(conf["set_range_R1"]) + " " +  str(conf["set_depth_D0"]) + " " + str(conf["set_depth_D1"])
+                else:
+                    msg = "set_range" + " " + str(conf["set_range_min"]) + " " + str(conf["set_range_max"])
+                self.send_msg(msg)
+            elif key == "set_vertical_resolution":
+                msg = "set_resolution" + " " + str(conf[key]) + " " + str(conf["set_horizontal_resolution"])
+                self.send_msg(msg)
+            elif key == "set_tx_Frequency":
+                msg = "set_tx" + " " + str(conf[key]) + " " + str(conf["set_tx_Bandwidth"]) + " " + str(conf["set_tx_amp"]) + " " + str(conf["set_tx_pulse_length"])
+                self.send_msg(msg)
+            else:
+                msg = key + " " + str(conf[key])
+                self.send_msg(msg)
+        self.cycling = True
+        self.config_server.update_configuration(conf)
         
-        # passinglist =["set_range_min", "set_range_max", "set_range_R0","set_range_R1", "set_depth_D0", "set_depth_D1", "set_horizontal_resolution", "set_tx_Bandwidth", "set_tx_amp", "set_tx_pulse_length"]                                                      
-        # gate_nr = config["set_gate_mode"]
+    def find_change_and_send(self, config1, config2, with_break):
+        msg = ""
+        for key in config1:
+            if key == "groups":
+                break
+            if config1[key] != config2[key]:
+                if key == 'set_gate_mode':
+                    msg = key + " " + str(config2[key])
+                    self.send_msg(msg)
+                    if config2[key] == 2:
+                        msg = "set_range" + " " + str(config2["set_range_R0"]) + " " + str(config2["set_range_R1"]) + " " +  str(config2["set_depth_D0"]) + " " + str(config2["set_depth_D1"])
+                        config1["set_range_R0"], config1["set_range_R1"], config1["set_depth_D0"], config1["set_depth_D1"] = config2["set_range_R0"], config2["set_range_R1"], config2["set_depth_D0"], config2["set_depth_D1"]
+                    else:
+                        msg = "set_range" + " " + str(config2["set_range_min"]) + " " + str(config2["set_range_max"])
+                        config1["set_range_min"], config1["set_range_max"] = config2["set_range_min"], config2["set_range_max"]
+                    self.send_msg(msg)
+        
+                elif (key == "set_range_min" or key == "set_range_max"):
+                    if config2["set_gate_mode"]!=2:
+                        msg = "set_range" + " " + str(config2["set_range_min"]) + " " + str(config2["set_range_max"])
+                        config1["set_range_min"], config1["set_range_max"] = config2["set_range_min"], config2["set_range_max"]
+                        self.send_msg(msg)
+                
+                elif (key == "set_range_R0" or key == "set_range_R1" or key == "set_depth_D0" or key == "set_depth_D1"):
+                    if config2["set_gate_mode"]==2:
+                        msg = "set_range" + " " + str(config2["set_range_R0"]) + " " + str(config2["set_range_R1"]) + " " +  str(config2["set_depth_D0"]) + " " + str(config2["set_depth_D1"])
+                        config1["set_range_R0"], config1["set_range_R1"], config1["set_depth_D0"], config1["set_depth_D1"] = config2["set_range_R0"], config2["set_range_R1"], config2["set_depth_D0"], config2["set_depth_D1"]
+                        self.send_msg(msg)
+                
+                elif key == "set_vertical_resolution" or key == "set_horizontal_resolution":
+                    msg = "set_resolution" + " " + str(config2["set_vertical_resolution"]) + " " + str(config2["set_horizontal_resolution"])
+                    config1["set_vertical_resolution"], config1["set_horizontal_resolution"] = config2["set_vertical_resolution"], config2["set_horizontal_resolution"]
+                    self.send_msg(msg)
+                
+                elif key == "set_tx_Frequency" or key == "set_tx_Bandwidth" or key == "set_tx_amp" or key == "set_tx_pulse_length":
+                    msg = "set_tx" + " " + str(config2["set_tx_Frequency"]) + " " + str(config2["set_tx_Bandwidth"]) + " " + str(config2["set_tx_amp"]) + " " + str(config2["set_tx_pulse_length"])
+                    config1["set_tx_Frequency"], config1["set_tx_Bandwidth"], config1["set_tx_amp"], config1["set_tx_pulse_length"] = config2["set_tx_Frequency"], config2["set_tx_Bandwidth"], config2["set_tx_amp"], config2["set_tx_pulse_length"]
+                    self.send_msg(msg)
+                else:
+                    msg = key + " " + str(config2[key])
+                    self.send_msg(msg)
+                    config1[key] = config2[key]
+                if with_break:
+                    break
 
 
 
-        # for key in config:
-        #     if key in passinglist:
-        #         continue
-        #     if key == "set_gate_mode":
-        #         msg = key + str(config[key])
-        #         #self.tcp_sock.send(msg.encode())
-        #         print(msg)
-        #         if gate_nr == 2:
-        #             msg = "set_range" + " " + str(config["set_range_R0"]) + " " + str(config["set_range_R1"]) + " " +  str(config["set_depth_D0"]) + " " + str(config["set_depth_D1"])
-        #         else:
-        #             msg = "set_range" + " " + str(config["set_range_min"]) + " " + str(config["set_range_max"])
-        #         #self.tcp_sock.send(msg.encode())
-        #         print(msg)
-        #     elif key == "set_vertical_resolution":
-        #         msg = "set_resolution" + " " + str(config[key]) + " " + str(config["set_horizontal_resolution"])
-        #     elif key == "set_tx_Frequency":
-        #         msg = "set_tx" + " " + str(config[key]) + " " + str(config["set_tx_Bandwidth"]) + " " + str(config["set_tx_amp"]) + " " + str(config["set_tx_pulse_length"])
-        #         #self.tcp_sock.send(msg.encode())
-        #         print(msg)
-        #     else:
-        #         msg = key + " " + str(config[key])
-        #         #self.tcp_sock.send(msg.encode())
-        #         print(msg)
-        return config
+    def cycle_callback(self, msg):
+        conf = message_converter.convert_ros_message_to_dictionary(msg)
+        self.find_change_and_send(self.original_config, conf, False)
+        self.cycling = True
+        self.config_server.update_configuration(conf)
+    
+    
+    
+    def send_msg(self,msg):
+        # rospy.loginfo(msg)
+        self.tcp_sock.send(msg.encode())
+        reply = self.tcp_sock.recv(1024)
+        # rospy.loginfo(reply)
 
-
-
-
-
+# first make a function (send_whole_config) then a function (send_and_receive)
 def main():
     """
     Main method for the ROS node.
@@ -133,38 +155,9 @@ def main():
     rospy.loginfo("Starting the FLS parsing node...")
     passinglist =["set_range_min", "set_range_max", "set_range_R0","set_range_R1", "set_depth_D0", "set_depth_D1", "set_horizontal_resolution", "set_tx_Bandwidth", "set_tx_amp", "set_tx_pulse_length"] 
     fls_comms = CommandInterface()
-    for key in fls_paramsConfig.defaults:
-        if key in passinglist:
-            continue
-        if key == "set_gate_mode":
-            msg = key + " " + str(fls_paramsConfig.defaults[key])
-            # rospy.loginfo(msg)
-            fls_comms.tcp_sock.send(msg.encode())
-            reply = fls_comms.tcp_sock.recv(1024)
-            if fls_paramsConfig.defaults[key] == 2:
-                msg = "set_range" + " " + str(fls_paramsConfig.defaults["set_range_R0"]) + " " + str(fls_paramsConfig.defaults["set_range_R1"]) + " " +  str(fls_paramsConfig.defaults["set_depth_D0"]) + " " + str(fls_paramsConfig.defaults["set_depth_D1"])
-            else:
-                msg = "set_range" + " " + str(fls_paramsConfig.defaults["set_range_min"]) + " " + str(fls_paramsConfig.defaults["set_range_max"])
-            # rospy.loginfo(msg)
-            fls_comms.tcp_sock.send(msg.encode())
-            reply = fls_comms.tcp_sock.recv(1024)
-        elif key == "set_vertical_resolution":
-            msg = "set_resolution" + " " + str(fls_paramsConfig.defaults[key]) + " " + str(fls_paramsConfig.defaults["set_horizontal_resolution"])
-            # rospy.loginfo(msg)
-            fls_comms.tcp_sock.send(msg.encode())
-            reply = fls_comms.tcp_sock.recv(1024)
-        elif key == "set_tx_Frequency":
-            msg = "set_tx" + " " + str(fls_paramsConfig.defaults[key]) + " " + str(fls_paramsConfig.defaults["set_tx_Bandwidth"]) + " " + str(fls_paramsConfig.defaults["set_tx_amp"]) + " " + str(fls_paramsConfig.defaults["set_tx_pulse_length"])
-            rospy.loginfo(msg)
-            # fls_comms.tcp_sock.send(msg.encode())
-            # reply = fls_comms.tcp_sock.recv(1024)
-        else:
-            msg = key + " " + str(fls_paramsConfig.defaults[key])
-            # rospy.loginfo(msg)
-            fls_comms.tcp_sock.send(msg.encode())
-            reply = fls_comms.tcp_sock.recv(1024)
-    fls_comms.initializing = False    
-
+    conf = fls_paramsConfig.defaults.copy()
+    fls_comms.send_whole_config(conf)  
+    fls_comms.initializing = False
     rate = rospy.Rate(10)
     while not rospy.is_shutdown():
         rate.sleep()
