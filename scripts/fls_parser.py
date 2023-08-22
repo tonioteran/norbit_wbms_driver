@@ -353,7 +353,10 @@ class FlsNode:
         image.encoding = 'mono8'  # TODO This should dynamically change
                                    # depending on the data's dtype...
         image.step = image.width * 1
-        image.data =  np.array(pixel_data, dtype='uint8').tolist()
+        # image.data =  np.array(pixel_data, dtype='uint8').tolist()
+        image.data = np.array(pixel_data)
+        image_max = np.max(image.data)
+        image.data = ((255/image_max) * image.data).astype('uint8').tolist()
         self.img_pub.publish(image)
 
         # Build the multi array.

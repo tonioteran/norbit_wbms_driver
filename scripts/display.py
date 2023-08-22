@@ -1,10 +1,8 @@
 #!/usr/bin/env python3
 import rospy
-from geometry_msgs.msg import TransformStamped
-import tf_conversions
-import tf2_ros
+
 import math
-import matplotlib.pyplot as plt
+
 from sensor_msgs.msg import Image
 from std_msgs.msg import Float32MultiArray
 import numpy as np
@@ -12,19 +10,21 @@ from geometry_msgs.msg import Twist
 from visualization_msgs.msg import Marker
 import cv2
 from cv_bridge import CvBridge, CvBridgeError
-from Norbit_FLS_driver.cfg import fls_paramsConfig 
 from Norbit_FLS_driver.msg import Fls
 
 
-def image_callback(msg:Image):
-    global num_beams, beam_samples
-    
-    data = msg.data
 
-    # Separate the data into imagearray and directions
+
+def data_callback(msg):
+    global num_beams, beam_samples
+    beam_samples= msg.num_samples
+    num_beams = msg.num_beams
+    data = msg.fls_raw.data
+        # Separate the data into imagearray and directions
     imagearray = np.array(data[:-num_beams], dtype=np.float32)
     imagearray = imagearray.reshape((beam_samples, num_beams))
     directions = np.array(data[-num_beams:], dtype=np.float32) + math.pi/2
+    rospy.loginfo(directions)
 
     # Normalize the imagearray between 0 and 255
     max_value = np.max(imagearray)
@@ -52,11 +52,6 @@ def image_callback(msg:Image):
     final.is_bigendian = 0
     final.step = beam_samples*2
     pub.publish(final)
-
-def data_callback(msg):
-    global num_beams, beam_samples
-    beam_samples= msg.num_samples
-    num_beams = msg.num_beams
     
 
 
@@ -66,7 +61,6 @@ def data_callback(msg):
 
 rospy.init_node('displayer')
 # sub_goal = rospy.Subscriber('/lolo/sim/fls/image', Image, image_callback)
-sub_goal = rospy.Subscriber('/fls/raw', Float32MultiArray, image_callback)
 sub_parser = rospy.Subscriber('/fls/data', Fls, data_callback)
 pub = rospy.Publisher('/fls/display', Image, queue_size=1)
 beam_samples=650
