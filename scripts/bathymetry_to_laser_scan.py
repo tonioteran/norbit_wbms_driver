@@ -7,7 +7,6 @@ from norbit_wbms_driver.msg import Bathymetry_beam
 
 
 def bathymetry_to_laser_scan(in_msg: Bathymetry):
-    # TODO: May need to sort the beams in in_msg with strictly increasing angle
     print("Converting Bathymetry msg to LaserScan msg.")
     out_msg = LaserScan()
 
@@ -24,10 +23,10 @@ def bathymetry_to_laser_scan(in_msg: Bathymetry):
     beams = in_msg.beams
     beams.sort(key=lambda x: x.angle)
 
-    angles = [beam.angle for beam in in_msg.beams]
-    for i in range(len(angles)-1):
-        if angles[i] > angles[i+1]:
-            print("Warning: Angles in bathymetry msg not strictly increasing")
+    #angles = [beam.angle for beam in in_msg.beams]
+    #for i in range(len(angles)-1):
+    #    if angles[i] > angles[i+1]:
+    #        print("Warning: Angles in bathymetry msg not strictly increasing")
     
     ranges = [beam.range for beam in in_msg.beams]
     intensities = [beam.intensity for beam in in_msg.beams]

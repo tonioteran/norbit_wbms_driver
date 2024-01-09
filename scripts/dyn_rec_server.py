@@ -1,9 +1,5 @@
 #!/usr/bin/env python3
-
-
-
 import socket
-
 import rospy
 from std_msgs.msg import Float32
 from dynamic_reconfigure.server import Server
@@ -22,8 +18,6 @@ class CommandInterface:
     #sonar_IP = "192.168.1.89"
     # Water column data port.
     sonar_PORT = 2209
-
-    
 
     def __init__(self):
         self.tcp_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -46,9 +40,6 @@ class CommandInterface:
         self.original_config = wbms_paramsConfig.defaults.copy()
         self.config_server = Server(wbms_paramsConfig, self.dynamic_callback)
         self.config_sub = rospy.Subscriber('configs', Configs, self.cycle_callback)
-        
-       
-      
 
 
     def dynamic_callback(self, config, level):

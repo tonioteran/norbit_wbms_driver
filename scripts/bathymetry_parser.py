@@ -240,10 +240,6 @@ class BathymetryNode:
         self.bathymetry_pub = rospy.Publisher("wbms/bathymetry",
                                        Bathymetry, 
                                        queue_size=1)
-        
-        self.laser_scan_pub = rospy.Publisher("wbms/laser_scan_bathymetry", 
-                                              LaserScan, 
-                                              queue_size=1)
 
 
     def parse_and_publish(self):
@@ -265,7 +261,7 @@ class BathymetryNode:
             N = self.p.parse_num_beams(data)
 
             expected_size_bytes = 111 + N*20 # TODO: Double check 111 or 112
-            
+
             real_size = self.p.parse_size(data)
 
             # Keep looping until the full message is completely received.
