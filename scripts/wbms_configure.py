@@ -6,8 +6,8 @@ import os
 # Read configuration file and send to Norbit sonar.
 # Finally starts the sonar pinging. 
 def send_configuration(inifile):
-    dir_path = os.path.dirname(os.path.realpath(__file__))
-    print("Current working directory: " + os.getcwd())
+    #dir_path = os.path.dirname(os.path.realpath(__file__))
+    #print("Current working directory: " + os.getcwd())
     print("Loading config file: " + str(inifile))
     config = configparser.ConfigParser(defaults=None, 
                                     delimiters=(':', '='), 

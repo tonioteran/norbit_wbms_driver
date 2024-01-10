@@ -13,7 +13,7 @@ def main():
     rospy.wait_for_service('/wbms_configure', timeout=None)
 
     print("Calling service")
-    rsp = configService("cfg/wbms_short_range.ini")
+    rsp = configService(1)
     print("Service response: " + rsp.ConfigResponse)
 
     #rospy.spin()
