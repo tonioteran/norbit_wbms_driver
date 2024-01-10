@@ -1,0 +1,20 @@
+<launch>
+    <!--Launch file for the node. Runs the main node + rqt reconfig server.-->
+  
+    <param name="wbms/sonar_ip" type="str" value="192.168.53.53" />
+    <param name="wbms/command_interface_port" type="str" value="2209" />
+
+    <param name="wbms/cfg_dir" value="$(find norbit_wbms_driver)/cfg"/>
+    <param name="wbms/default_conf_file" value="wbms_default.ini" />
+    <param name="wbms/short_range_conf_file" value="wbms_short_range.ini" />
+    <param name="wbms/medium_range_conf_file" value="wbms_medium_range.ini" />
+    <param name="wbms/long_range_conf_file" value="wbms_long_range.ini" />
+
+    <param name="poop" type="string" value="pee"/>
+
+    <node pkg="norbit_wbms_driver" type="wbms_config_server.py" name="config_server" output="screen"/>
+
+	<!--RQT Dynamic Reconfigure GUI-->
+  <!--<node pkg="rqt_reconfigure" type="rqt_reconfigure" name="dynamic_reconfigure_gui" output="screen"/>-->
+
+</launch>

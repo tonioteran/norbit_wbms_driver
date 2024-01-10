@@ -1,0 +1,31 @@
+<launch>
+    <!--Launch file for the node. Runs the main node + rqt reconfig server.-->
+
+    <arg name="wbms_sonar_ip" default="192.168.53.53" />
+    <arg name="wbms_bathymetry_data_port" default="2210" />
+    <arg name="wbms_watercolumn_data_port" default="2211" />
+    <arg name="wbms_snippet_data_port" default="2212" />
+    <arg name="wbms_command_interface_port" default="2209" />
+
+    <arg name="wbms_configuration_path" default="cfg/">
+    <arg name="wbms_configuration_file" default="wbms_default.ini">
+
+    <arg name="fls_sonar_ip" default="192.168.53.53" />
+
+    <!-- Ip address of scientist -->
+    <arg name="computer_ip" default="192.168.1.100" />
+
+    <node pkg="lolo_norbit_wbms_driver" type="bathymetry_parser.py" name="bathymetry_parser" output="screen"/>
+    <node pkg="lolo_norbit_wbms_driver" type="wc_parser.py" name="wc_parser" output="screen"/>
+    <node pkg="lolo_norbit_wbms_driver" type="config_server.py" name="config_server" output="screen"/>
+    <node pkg="lolo_norbit_wbms_driver" type="bathymetry_to_laser_scan.py" name="bathymetry_to_laserscan" output="screen"/>
+
+  <!-- <node pkg="lolo_sidescan" type="filter.py" name="sidescan_filter" output="screen"/> -->
+
+ <!--  <node pkg="lolo_sidescan" type="translator.py" name="imc_translator" output="screen"/> -->
+  
+	<!--RQT Dynamic Reconfigure GUI-->
+  <!--<node pkg="rqt_reconfigure" type="rqt_reconfigure" name="dynamic_reconfigure_gui" output="screen"/>-->
+
+
+</launch>
