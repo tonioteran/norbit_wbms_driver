@@ -27,33 +27,67 @@ except:
 def send(msg: str):
     msg = msg + "\n\r"
     tcp_socket.send(msg.encode())
-    print(msg.encode())
+    print("Sent: " + msg.encode())
+    print("Reply: " + tcp_socket.recv(1024))
 
+
+# Operational Modes
+print('Setting sonar modes')
+sonar = config['sonar']
 modes = config['mode.operation_modes']
+flipmodes = config['mode.flip_modes']
+gatemodes = config['mode.gate_modes']
+send('set_mode ' + modes.get(sonar['mode']))
+send('set_sidescan_mode ' + sonar['sidescanMode']))
+send('set_flip ' + flipmodes.get(sonar['flipMode']))
+send('set_gate_mode ' + gatemodes.get(sonar['gateMode']))
+send('set_gate_tilt ' + sonar['gateTilt'])
+if sonar['mode'] == 'range':
+    send('set_range ' + config['range']['gate_mode_range'])
+elif sonar['mode'] == 'depth':
+    send('set_range ' + config['range']['gate_mode_depth'])
+elif sonar['mode'] == 'mixed':
+    send('set_range ' + config['range']['gate_mode_range'] + ' ' + config['range']['gate_mode_depth'])
 
-send('set_mode ' + modes.get(config['sonar']['mode']))
+autogateModes = config['mode.adaptive_gate_modes']
+send('set_autogate_preset ' + autogateModes.get(sonar['autogatePreset']))
 
 # Swath configuration 
+print('Setting swath parameters')
 swath = config['swath']
 send('set_direction ' + swath['direction'])
 send('set_opening_angle ' + swath['openingAngle'])
+send('set_resolution ' + swath['resolution'])
+send('set_mf_decimation ' + swath['mfDecimation']) # TODO: Really good idea to set this?
 
+# TODO: Add STX parameters if necessary
 
 # Transmission Configuration
+print('Setting transmission pulse parameters')
+triggerModes = config['mode.triger_modes']
 tx = config['tx']
-tcp_socket.send(str('set_tx ' + 
-                tx['frequency'] + ' ' +
-                tx['bandwidth'] + ' ' +
-                tx['amplitude'] + ' ' +
-                tx['length']).encode())
+send('set_tx ' + 
+     tx['frequency'] + ' ' + 
+     tx['bandwidth'] + ' ' + 
+     tx['amplitude'] + ' ' + 
+     tx['length'])
 
-flipmodes = config['mode.flip_modes']
-send('set_flip ' + flipmodes.get(config['sonar']['flipMode']))
+send('set_gain ' + tx['gain'])
+send('set_vga ' + tx['vga'])
+send('set_rate ' + tx['rate'])
+send('set_tp_rate ' + tx['tpRate'])
+send('set_snippet_rate ' + tx['snippetRate'])
+send('set_trigger_mode ' + triggerModes.get(tx['triggerMode']))
 
-gatemodes = config['mode.gate_modes']
-send('set_gate_mode ' + gatemodes.get(config['sonar']['gateMode']))
-send('set_gate_tilt ' + config['sonar']['gateTilt'])
+# Environment
+print("Setting environment parameters")
+environment = config['environment']
+timeSources = config['mode.time_source_modes']
+send('set_sound_velocity ' + environment['soundVelocity'])
+send('set_time_source ' + timeSources.get(environment['timeSource']))
+send('set_ntp_server ' + environment['ntpServer'])
 
+tcp_socket.re
 
 tcp_socket.close()
 
