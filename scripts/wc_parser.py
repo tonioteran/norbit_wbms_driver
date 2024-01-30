@@ -267,9 +267,9 @@ class WbmsNode:
 
     # sonar's IP and port.
     #sonar_IP = "192.168.1.89"
-    sonar_IP = "192.168.53.53"
+    sonar_IP = rospy.get_param(rospy.get_name() + '/wbms_sonar_ip')
     # Water column data port.
-    sonar_PORT = 2211
+    sonar_PORT = rospy.get_param(rospy.get_name() + '/wbms_watercolumn_data_port')
 
     BUFFER_SIZE_BYTES = 512000
 
