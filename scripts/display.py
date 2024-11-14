@@ -77,6 +77,7 @@ if __name__ == '__main__':
     
     rospy.init_node('waterColumn_converter')
     fls = ImageConverter(fls_topic_in, fls_topic_out, 90)#90)
+    fls_old_topic = ImageConverter("/fls/wbms/watercolumn/data", fls_topic_out, 90)#90)
     mbes = ImageConverter(mbes_topic_in, mbes_topic_out, 35)
-
+    #mbes_old_topic = ImageConverter("/mbes/wbms/watercolumn/data", mbes_topic_out, 35)
     rospy.spin()
