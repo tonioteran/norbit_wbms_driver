@@ -1,10 +1,8 @@
 import rclpy
 from rclpy.node import Node
 from rcl_interfaces.msg import SetParametersResult, ParameterDescriptor, IntegerRange, ParameterType
+from rclpy.parameter import Parameter
 import socket
-import array
-
-import rclpy.parameter
 
 class WBMSDriverNode(Node):
     """
@@ -243,11 +241,11 @@ class WBMSDriverNode(Node):
     def send_parameters_update(self, params):
         messages = []
         for param in params:
-            if not isinstance(param.value, array.array):
-                messages.append(f'{param.name} {param.value}')
-            else:
+            if param.type_ == Parameter.Type.INTEGER_ARRAY:
                 values_str = [str(param.value[i]) for i in range(len(param.value))]
                 messages.append(f'{param.name} {" ".join(values_str)}')
+            else:
+                messages.append(f'{param.name} {param.value}')
 
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             s.connect((self.sonar_ip, self.sonar_port))
