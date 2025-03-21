@@ -9,6 +9,10 @@
   <maintainer email="sdup@kth.se">Shekhar Upadhyay</maintainer>
   <license>TODO: License declaration</license>
 
+  <buildtool_depend>ament_python</buildtool_depend>
+
+  <depend>rclpy</depend>
+
   <export>
     <build_type>ament_python</build_type>
   </export>
