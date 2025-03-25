@@ -7,6 +7,7 @@ from rclpy.node import Node
 import struct
 import socket
 import math
+import time
 
 from norbit_wbms_interfaces.msg import Bathymetry, BathymetryBeam
 
@@ -211,6 +212,7 @@ class BathymetryNode(Node):
         self.sonar_ip = '127.0.0.1' #TODO: modify in launch file
         self.bathy_port = 2210
 
+        self.tcp_retry_every = 5 # seconds
         self.tcp_socket = self.connect_to_sonar()
 
         # Build our parser.
@@ -229,12 +231,11 @@ class BathymetryNode(Node):
         Connect to the sonar's IP and port and return the TCP socket.
         Retry until connection is established.
         """
-        #TODO: Add timer to sleep between retries.
+        connected = False
 
         tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         tcp_socket.settimeout(SOCKET_TIMEOUT)
         tcp_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        connected = False
 
         while not connected:
             try:
@@ -245,7 +246,8 @@ class BathymetryNode(Node):
             except Exception as e:
                 self.get_logger().error(f"Error connecting to sonar at {self.sonar_ip}:{self.bathy_port}")
                 self.get_logger().error(str(e))
-                self.get_logger().info("Trying again...")
+                self.get_logger().info(f"Trying again in {self.tcp_retry_every} seconds...")
+                time.sleep(self.tcp_retry_every)
 
 
     def parse_and_publish(self):
