@@ -202,6 +202,8 @@ class BathymetryParser:
 class BathymetryNode(Node):
     """
     Class to handle the HEX parsing from an norbit sonar's data stream.
+    Note that this node blocks until the TCP connection is established.
+    #TODO: test actual parsing with real data
     """
     BUFFER_SIZE_BYTES = 512000
 
