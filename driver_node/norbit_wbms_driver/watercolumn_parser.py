@@ -291,6 +291,8 @@ class WaterColumnNode(Node):
 
         self.watercolumn_pub = self.create_publisher(WaterColumn, 'watercolumn', 1)
         self.watercolumn_pub_timer = self.create_timer(1, self.parse_and_publish)
+        self.watercolumn_raw_image_pub = self.create_publisher(Image, 'watercolumn_raw_image', 1)
+
 
     def connect_to_sonar(self):
         """
@@ -385,6 +387,7 @@ class WaterColumnNode(Node):
         msg.watercolumn_raw = self._build_watercolumn_raw_image()
         msg.watercolumn_beam_directions = self.p.parse_directions(self.data_buffer)
         self.watercolumn_pub.publish(msg)
+        self.watercolumn_raw_image_pub.publish(msg.watercolumn_raw)
         # Consume the bytes that have been processed from the buffer.
         self.data_buffer = self.data_buffer[expected_size_bytes:]
 
