@@ -238,7 +238,7 @@ class WCParser:
         step_char,step_size = self.dtype_map[dtype]
         parse_str = '<{}'.format(step_char)
 
-        print("M={} N={}, num pixels={}".format(M,N,M*N))
+        self.get_logger().info("M={} N={}, num pixels={}".format(M,N,M*N))
         pixel_values = []
         for i in range(M * N):
             offset = 192 + i * step_size
@@ -342,15 +342,15 @@ class WaterColumnNode(Node):
                     data, addr = self.tcp_socket.recvfrom(self.BUFFER_SIZE_BYTES)
                     self.data_buffer += data
                 except:
-                    print("something went wrong in the msg reconstruction loop")
+                    self.get_logger().warn("something went wrong in the msg reconstruction loop")
 
         except socket.timeout:
             self.get_logger().error("Watercolumn interface socket timed out, verify connection.")
             return
 
-        print(f'Received {len(data)} bytes from the TCP socket')
-        print(f'Stored {len(self.data_buffer)} bytes in data_buffer')
-        print(f'Expected size of the message: {expected_size_bytes} bytes')
+        self.get_logger().info(f'Received {len(data)} bytes from the TCP socket')
+        self.get_logger().info(f'Stored {len(self.data_buffer)} bytes in data_buffer')
+        self.get_logger().info(f'Expected size of the message: {expected_size_bytes} bytes')
 
         # build the WaterColumn msg
         msg = WaterColumn()
