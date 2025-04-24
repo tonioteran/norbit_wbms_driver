@@ -11,10 +11,7 @@ class WaterColumnVisualizer(Node):
         self.get_logger().info("WaterColumnVisualizer node started")
         self.message_counter = 0
         self.subscription = self.create_subscription(
-            WaterColumn, "watercolumn", self.listener_callback, 10
-        )
-        self.raw_image_publisher = self.create_publisher(
-            Image, "watercolumn_raw_image", 10
+            WaterColumn, "watercolumn_raw_image", self.listener_callback, 10
         )
         self.processed_image_publisher = self.create_publisher(
             Image, "watercolumn_processed_image", 10
@@ -23,14 +20,9 @@ class WaterColumnVisualizer(Node):
     def listener_callback(self, msg):
         self.message_counter += 1
         self.get_logger().info(
-            "Received watercolumn message #{}".format(self.message_counter)
+            "Received watercolumn_raw_image message #{}".format(self.message_counter)
         )
         processed_img = self.convert_image_to_polar(msg)
-        # Publish the Image message
-        self.get_logger().info(
-            "Publishing raw image to {}".format(self.raw_image_publisher.topic)
-        )
-        self.raw_image_publisher.publish(msg.watercolumn_raw)
         self.get_logger().info(
             "Publishing processed image to {}".format(
                 self.processed_image_publisher.topic
