@@ -238,7 +238,7 @@ class WCParser:
         step_char,step_size = self.dtype_map[dtype]
         parse_str = '<{}'.format(step_char)
 
-        self.get_logger().info("M={} N={}, num pixels={}".format(M,N,M*N))
+        print("M={} N={}, num pixels={}".format(M,N,M*N))
         pixel_values = []
         for i in range(M * N):
             offset = 192 + i * step_size
@@ -276,7 +276,8 @@ class WaterColumnNode(Node):
         super().__init__('wc_parser')
         self.get_logger().info("Starting the WBMS water column parser node...")
         
-        self.sonar_ip = '127.0.0.1' #TODO: modify in launch file
+        # self.sonar_ip = '127.0.0.1' #TODO: modify in launch file
+        self.sonar_ip = '192.168.1.53' #TODO: modify in launch file
         self.watercolumn_port = 2211
 
         self.tcp_retry_every = 5 # seconds
