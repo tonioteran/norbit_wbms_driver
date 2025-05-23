@@ -185,18 +185,18 @@ class BathymetryParser:
             quality_flag = struct.unpack('<B', msg[110+n*20:111+n*20])[0]
             quality_value = struct.unpack('<B', msg[111+n*20:112+n*20])[0]
             range_ = sample_num*sv/(2*sr)
-            bathy_msg.beams.append(BathymetryBeam(
-                sample_num,
-                angle,
-                upper_gate,
-                lower_gate,
-                intensity,
-                flags,
-                quality_flag,
-                quality_value,
-                range_
-            ))
-            
+
+            beam = BathymetryBeam()
+            beam.sample_number = sample_num
+            beam.angle = angle
+            beam.upper_gate = upper_gate
+            beam.lower_gate = lower_gate
+            beam.intensity = intensity
+            beam.flags = flags
+            beam.quality_flag = quality_flag
+            beam.quality_val = quality_value
+            beam.range = range_
+            bathy_msg.beams.append(beam)
 
 
 class BathymetryNode(Node):
@@ -211,7 +211,7 @@ class BathymetryNode(Node):
         super().__init__('bathymetry_parser')
         self.get_logger().info("Starting Bathymetry Node")
 
-        self.sonar_ip = '127.0.0.1' #TODO: modify in launch file
+        self.sonar_ip = '192.168.1.53' #TODO: modify in launch file
         self.bathy_port = 2210
 
         self.tcp_retry_every = 5 # seconds
@@ -256,16 +256,15 @@ class BathymetryNode(Node):
         """
         Parse and publish the data recived from the TCP socket.
         """
-        # Get data from udp socket
         try:
             # Fetch the initial chunk.
             data, addr = self.tcp_socket.recvfrom(self.BUFFER_SIZE_BYTES)
+            self.data_buffer += data
+
             # Quick check of the deadbeef.
-            if self.p.parse_preamble(data) != 0xDEADBEEF:
+            if self.p.parse_preamble(self.data_buffer) != 0xDEADBEEF:
                 self.get_logger().error("Message did not pass the deadbeef check!")
                 return
-
-            self.data_buffer += data
 
             # Get the expected size of the packet.
             N = self.p.parse_num_beams(data)
@@ -277,7 +276,7 @@ class BathymetryNode(Node):
             # Keep looping until the full message is completely received.
             while len(self.data_buffer) < expected_size_bytes:
                 try:
-                    data, addr = self.tcp_sock.recvfrom(self.BUFFER_SIZE_BYTES)
+                    data, addr = self.tcp_socket.recvfrom(self.BUFFER_SIZE_BYTES)
                     self.data_buffer += data
                 except:
                     print("something went wrong in the msg reconstruction loop")
@@ -318,7 +317,7 @@ class BathymetryNode(Node):
 
         self.bathymetry_pub.publish(msg)
         # Reset the data buffer.
-        self.data_buffer = b''
+        self.data_buffer = self.data_buffer[expected_size_bytes:]
 
 
 def main(args=None):
