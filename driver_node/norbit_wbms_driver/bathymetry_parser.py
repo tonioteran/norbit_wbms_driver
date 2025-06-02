@@ -11,11 +11,6 @@ import time
 
 from norbit_wbms_interfaces.msg import Bathymetry, BathymetryBeam
 
-__author__ = "Aldo Teran"
-__author_email = "aldot@kth.se"
-__license__ = "MIT"
-__status__ = "Development"
-
 SOCKET_TIMEOUT = 5
 
 class BathymetryParser:
@@ -240,7 +235,7 @@ class BathymetryNode(Node):
         tcp_socket.settimeout(SOCKET_TIMEOUT)
         tcp_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
-        while not connected:
+        while not connected and rclpy.ok():
             try:
                 tcp_socket.connect((self.sonar_ip, self.bathy_port))
                 self.get_logger().info(f"Connected to sonar at {self.sonar_ip}:{self.bathy_port}")
@@ -275,7 +270,7 @@ class BathymetryNode(Node):
             real_size = self.p.parse_size(data)
 
             # Keep looping until the full message is completely received.
-            while len(self.data_buffer) < expected_size_bytes:
+            while len(self.data_buffer) < expected_size_bytes and rclpy.ok():
                 try:
                     data, addr = self.tcp_socket.recvfrom(self.BUFFER_SIZE_BYTES)
                     self.data_buffer += data
@@ -289,6 +284,12 @@ class BathymetryNode(Node):
         print("Final size of the concat msg={}".format(len(self.data_buffer)))
 
         # Build the Bathymetry message
+        msg = self._build_bathymetry_msg()
+        self.bathymetry_pub.publish(msg)
+        # Reset the data buffer.
+        self.data_buffer = self.data_buffer[expected_size_bytes:]
+
+    def _build_bathymetry_msg(self):
         msg = Bathymetry()
         msg.preamble = self.p.parse_preamble(self.data_buffer)
         msg.type = self.p.parse_type(self.data_buffer)
@@ -315,10 +316,20 @@ class BathymetryNode(Node):
         msg.gate_tilt = self.p.parse_gate_tilt(self.data_buffer)
 
         self.p.parse_beams(self.data_buffer, msg)
+        return msg
 
-        self.bathymetry_pub.publish(msg)
-        # Reset the data buffer.
-        self.data_buffer = self.data_buffer[expected_size_bytes:]
+    def destroy_node(self):
+        """Detroy the node and close the TCP socket."""
+        self.get_logger().info("Shutting down bathymetry parser node...")
+        if self.tcp_socket:
+            try:
+                self.tcp_socket.close()
+                self.get_logger().info("TCP socket closed successfully.")
+            except Exception as e:
+                self.get_logger().error(f"Error closing TCP socket: {str(e)}")
+        else:
+            self.get_logger().info("No TCP socket to close.")
+        super().destroy_node()
 
 
 def main(args=None):
@@ -328,9 +339,13 @@ def main(args=None):
     rclpy.init(args=args)
 
     bathy_parser = BathymetryNode()
-    rclpy.spin(bathy_parser)
-    bathy_parser.destroy_node()
-    rclpy.shutdown()
+    try:
+        rclpy.spin(bathy_parser)
+    except KeyboardInterrupt:
+        bathy_parser.get_logger().info("Keyboard interrupt received, shutting down...")
+    finally:
+        bathy_parser.destroy_node()
+        rclpy.shutdown()
 
 if __name__ == "__main__":
     main()
