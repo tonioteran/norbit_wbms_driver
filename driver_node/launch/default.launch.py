@@ -7,12 +7,14 @@ def generate_launch_description():
     ld = LaunchDescription()
 
     # sonar_ip = "192.168.1.53"
+    namespace = "lolo"
     sonar_ip = "127.0.0.1"
 
     settings_node = Node(
         package="norbit_wbms_driver",
         executable="wbms_driver",
-        name="settinsgs_node",
+        name="settings_node",
+        namespace=namespace,
         output="screen",
         parameters=[
             {
@@ -26,6 +28,7 @@ def generate_launch_description():
         package="norbit_wbms_driver",
         executable="bathymetry_parser",
         name="bathymetry_parser",
+        namespace=namespace,
         output="screen",
         parameters=[
             {
@@ -41,6 +44,7 @@ def generate_launch_description():
         executable="watercolumn_parser",
         name="watercolumn_parser",
         output="screen",
+        namespace=namespace,
         parameters=[
             {
                 "sonar_ip": sonar_ip,
