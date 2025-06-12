@@ -5,6 +5,7 @@
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/point_cloud2.hpp"
 #include "std_msgs/msg/header.hpp"
+#include "std_msgs/msg/string.hpp"
 
 namespace {
 
@@ -101,9 +102,53 @@ class BathymetryParser : public rclcpp::Node {
   rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr pub_pcd_;
 };
 
+class DummyRosNode : public rclcpp::Node {
+  public:
+    DummyRosNode() : Node("dummy_node") {
+      std::cout << "\n\n\n DUMMY NODE HAS BEEN CREATED!!!! \n\n\n";
+    }
+
+  private:
+};
+
+class NoRosWrapper {
+ public:
+  NoRosWrapper() {
+    node_ = std::make_shared<DummyRosNode>();
+    sub_bathymetry_ = node_->create_subscription<Bathymetry>(
+        kBathymetryTopic, 1,
+        std::bind(&NoRosWrapper::NoRosCallback, this, std::placeholders::_1));
+    pub_dummy_ = node_->create_publisher<std_msgs::msg::String>(
+        "bathymetry/dummy_out", 2);
+  }
+
+  std::shared_ptr<DummyRosNode> node() { return node_; }
+
+ private:
+  void NoRosCallback(const Bathymetry::SharedPtr msg) {
+    std::cout << "Hello world from outside of the ROS2 node!!!!\n";
+    auto message = std_msgs::msg::String();
+    message.data = "Hello, world! from outside of ROS";
+    pub_dummy_->publish(message);
+  }
+
+  rclcpp::Subscription<Bathymetry>::SharedPtr sub_bathymetry_;
+  rclcpp::Publisher<std_msgs::msg::String>::SharedPtr pub_dummy_;
+  std::shared_ptr<DummyRosNode> node_;
+};
+
 int main(int argc, char* argv[]) {
   rclcpp::init(argc, argv);
-  rclcpp::spin(std::make_shared<BathymetryParser>());
+
+  auto wrapper = std::make_shared<NoRosWrapper>();
+  auto real_node = std::make_shared<BathymetryParser>();
+
+  rclcpp::executors::MultiThreadedExecutor executor;
+  executor.add_node(wrapper->node());
+  executor.add_node(real_node);
+  executor.spin();
+
+  //rclcpp::spin(std::make_shared<BathymetryParser>());
   rclcpp::shutdown();
   return 0;
 }
